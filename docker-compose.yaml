@@ -1,0 +1,52 @@
+# Run: docker-compose up -d
+# Stop: docker-compose down
+
+# All projects besides discovery will have a variable value -DEUREKA_SERVER=http://discovery:8761/eureka. 
+# This will tell where to find the Discovery server. Docker Compose creates a virtual network between the 
+# services and the DNS name used for each service is its name: that’s why it’s possible to use discovery as the hostname.
+version: '3'
+services:
+  discovery:
+    image: developer.okta.com/microservice-docker-discovery:0.0.1-SNAPSHOT
+    ports:
+      - 8761:8761
+# The Config service will have a volume going to configuration files. This volume will be mapped to /var/config-data
+# inside the docker container. Also, the property spring.cloud.config.server.native.searchLocations will be overwritten 
+# to the same value. You must store the file school-ui.properties in the same folder specified on the volume mapping 
+# (in the example above, the relative folder ./config-data).
+  config:
+    image: developer.okta.com/microservice-docker-config:0.0.1-SNAPSHOT
+    volumes:
+      - ./config-data:/var/config-data
+    environment:
+      - JAVA_OPTS=
+         -DEUREKA_SERVER=http://discovery:8761/eureka
+         -Dspring.cloud.config.server.native.searchLocations=/var/config-data
+    depends_on:
+      - discovery
+    ports:
+      - 8888:8888
+  school-service:
+    image: developer.okta.com/microservice-docker-school-service:0.0.1-SNAPSHOT
+    environment:
+      - JAVA_OPTS=
+        -DEUREKA_SERVER=http://discovery:8761/eureka
+    depends_on:
+      - discovery
+      - config
+      
+# The school-ui project will have the property restart: on-failure. This set Docker Compose to restart the application
+# as soon as it fails. Using together with failFast property allows the application to keep trying to start until the 
+# Discovery and Config projects are completely ready.
+  school-ui:
+    image: developer.okta.com/microservice-docker-school-ui:0.0.1-SNAPSHOT
+    environment:
+      - JAVA_OPTS=
+        -DEUREKA_SERVER=http://discovery:8761/eureka
+#        -Dspring.profiles.active=production (here uses production profile because we have school-ui-production.properties
+    restart: on-failure
+    depends_on:
+      - discovery
+      - config
+    ports:
+      - 8080:8080

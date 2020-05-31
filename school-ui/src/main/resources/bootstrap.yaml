@@ -1,0 +1,17 @@
+# Some configurations need to be defined at project boot time. 
+# Spring had a clever solution to locate properly and extract configuration data before context startup.
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka}
+spring:
+  application:
+    name: school-ui
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        service-id: CONFIGSERVER
+      # The spring.cloud.failFast: true setting tells Spring Cloud Config to terminate the 
+      # application as soon as it can’t find the configuration server. This will be useful for the next step.  
+      failFast: true
